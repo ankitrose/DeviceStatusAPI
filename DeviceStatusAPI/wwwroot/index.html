@@ -1,0 +1,382 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Status</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: url('drdo-logo.png') no-repeat center center fixed;
+            background-size: contain;
+            background-color: #f0f0f0;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #054078;
+            color: white;
+            padding: 10px 20px;
+        }
+
+        .top-right {
+            margin: 0;
+        }
+
+        h1 {
+            color: white;
+            margin: 0;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        .button-container {
+            margin-bottom: 20px;
+        }
+
+        form {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #2a9cca;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+            button:hover {
+                background-color: #1a6f7e;
+            }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #fff;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f9f9f9;
+        }
+
+        button.edit, button.delete {
+            width: auto;
+            padding: 5px 10px;
+            margin: 0 5px;
+            background-color: #2a9cca;
+        }
+
+        a {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #2a9cca;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+
+            a:hover {
+                background-color: #1a6f7e;
+            }
+
+        .highlighted-table {
+            background-color: #eaebde !important;
+        }
+
+        .error {
+            color: red;
+            margin-bottom: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0, 0, 0);
+            background-color: rgba(0, 0, 0, 0.4);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 5px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+            .close:hover,
+            .close:focus {
+                color: black;
+                text-decoration: none;
+                cursor: pointer;
+            }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Device Status</h1>
+        <img src="drdo-side-logo.png" alt="DRDO Side Logo" class="top-right">
+    </div>
+    <div class="container">
+        <div class="button-container">
+            <a href="history.html">View Device History</a>
+        </div>
+        <form id="deviceForm">
+            <div class="error" id="errorMessage"></div>
+            <input type="hidden" id="deviceId" />
+            <div>
+                <label for="deviceName">Device Name:</label>
+                <input type="text" id="deviceName" required />
+            </div>
+            <div>
+                <label for="deviceStatus">Status:</label>
+                <select id="deviceStatus" required>
+                    <option value="In Use">In Use</option>
+                    <option value="Not Working">Not Working</option>
+                    <option value="Removed for Maintenance">Removed for Maintenance</option>
+                </select>
+            </div>
+            <button type="submit">Save Device</button>
+        </form>
+        <table id="devicesTable">
+            <thead>
+                <tr>
+                    <th>Device Name</th>
+                    <th>Status</th>
+                    <th>Last Updated</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- The Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeModal">&times;</span>
+            <h2>Edit Device</h2>
+            <form id="editDeviceForm">
+                <input type="hidden" id="editDeviceId" />
+                <div>
+                    <label for="editDeviceName">Device Name:</label>
+                    <input type="text" id="editDeviceName" required />
+                </div>
+                <div>
+                    <label for="editDeviceStatus">Status:</label>
+                    <select id="editDeviceStatus" required>
+                        <option value="In Use">In Use</option>
+                        <option value="Not Working">Not Working</option>
+                        <option value="Removed for Maintenance">Removed for Maintenance</option>
+                    </select>
+                </div>
+                <button type="submit">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('deviceForm').addEventListener('submit', saveDevice);
+        document.getElementById('editDeviceForm').addEventListener('submit', saveEditedDevice);
+        document.getElementById('closeModal').addEventListener('click', closeModal);
+        window.onclick = function (event) {
+            if (event.target == document.getElementById('editModal')) {
+                closeModal();
+            }
+        }
+
+        let currentEditDeviceId = null;
+
+        async function fetchDevices() {
+            const response = await fetch('/api/Devices');
+            const devices = await response.json();
+            const tableBody = document.querySelector('#devicesTable tbody');
+            tableBody.innerHTML = '';
+            devices.forEach(device => {
+                const row = document.createElement('tr');
+                row.dataset.deviceId = device.deviceID;
+                row.innerHTML = `
+                        <td class="device-name">${device.deviceName}</td>
+                        <td class="device-status">${device.status}</td>
+                        <td class="device-last-updated">${new Date(device.lastUpdated).toLocaleString()}</td>
+                        <td>
+                            <button class="edit" onclick="editDevice(${device.deviceID})">Edit</button>
+                            <button class="delete" onclick="deleteDevice(${device.deviceID})">Delete</button>
+                        </td>
+                    `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        async function saveDevice(event) {
+            event.preventDefault();
+            const deviceId = document.getElementById('deviceId').value;
+            const deviceName = document.getElementById('deviceName').value;
+            const deviceStatus = document.getElementById('deviceStatus').value;
+
+            const device = {
+                deviceName: deviceName,
+                status: deviceStatus,
+            };
+
+            let response;
+            try {
+                if (deviceId) {
+                    response = await fetch(`/api/Devices/${deviceId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(device)
+                    });
+                } else {
+                    response = await fetch('/api/Devices', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(device)
+                    });
+                }
+
+                if (response.ok) {
+                    document.querySelector('#devicesTable').classList.add('highlighted-table');
+                    setTimeout(() => {
+                        document.querySelector('#devicesTable').classList.remove('highlighted-table');
+                    }, 2000);
+                    document.getElementById('errorMessage').innerText = '';
+                    document.getElementById('deviceForm').reset();
+                    document.getElementById('deviceId').value = '';
+                    fetchDevices(); // Refresh the device list
+                } else {
+                    const errorText = await response.text();
+                    document.getElementById('errorMessage').innerText = errorText;
+                }
+            } catch (error) {
+                document.getElementById('errorMessage').innerText = 'An error occurred. Please try again.';
+            }
+        }
+
+        async function editDevice(id) {
+            currentEditDeviceId = id;
+            const response = await fetch(`/api/Devices/${id}`);
+            const device = await response.json();
+            document.getElementById('editDeviceId').value = device.deviceID;
+            document.getElementById('editDeviceName').value = device.deviceName;
+            document.getElementById('editDeviceStatus').value = device.status;
+            document.getElementById('editModal').style.display = "block";
+        }
+
+        async function saveEditedDevice(event) {
+            event.preventDefault();
+            const deviceId = document.getElementById('editDeviceId').value;
+            const deviceName = document.getElementById('editDeviceName').value;
+            const deviceStatus = document.getElementById('editDeviceStatus').value;
+
+            const device = {
+                deviceID: deviceId,
+                deviceName: deviceName,
+                status: deviceStatus,
+            };
+
+            try {
+                const response = await fetch(`/api/Devices/${deviceId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(device)
+                });
+
+                if (response.ok) {
+                    // Close the modal
+                    closeModal();
+
+                    // Update the table row directly
+                    const row = document.querySelector(`tr[data-device-id="${deviceId}"]`);
+                    row.querySelector('.device-name').textContent = deviceName;
+                    row.querySelector('.device-status').textContent = deviceStatus;
+                    row.querySelector('.device-last-updated').textContent = new Date().toLocaleString();
+
+                    // Optionally, highlight the row to indicate an update
+                    row.classList.add('highlighted-table');
+                    setTimeout(() => {
+                        row.classList.remove('highlighted-table');
+                    }, 2000);
+                } else {
+                    const errorText = await response.text();
+                    alert('Error: ' + errorText);
+                }
+            } catch (error) {
+                alert('An error occurred. Please try again.');
+            }
+        }
+
+        async function deleteDevice(id) {
+            await fetch(`/api/Devices/${id}`, {
+                method: 'DELETE'
+            });
+            fetchDevices(); // Refresh the device list
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').style.display = "none";
+        }
+
+        fetchDevices(); // Initial fetch
+    </script>
+</body>
+</html>
